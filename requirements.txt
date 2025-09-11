@@ -1,0 +1,5 @@
+fastf1
+matplotlib
+pandas
+plotly
+streamlit   # optionnel si tu veux faire une interface

@@ -1,0 +1,11 @@
+# Environnements virtuels
+.venv/
+venv/
+
+# Cache FastF1
+cache/
+
+# Fichiers temporaires
+__pycache__/
+*.pyc
+*.pyo
