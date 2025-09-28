@@ -9,3 +9,5 @@ cache/
 __pycache__/
 *.pyc
 *.pyo
+test.py
+temp.py
