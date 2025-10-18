@@ -1,5 +1,4 @@
 # Environnements virtuels
-.venv/
 venv/
 
 # Cache FastF1
@@ -9,5 +8,4 @@ cache/
 __pycache__/
 *.pyc
 *.pyo
-test.py
-temp.py
+temp/
