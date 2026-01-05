@@ -45,9 +45,21 @@ def choose_drivers(drivers):
 # Input: best1, best2 (best laps for each driver)
 # Output: none
 # Precondition: none
-# Postcondition: exits if one of the laps does not exist
+# Postcondition: returns True if both laps exist, False otherwise
 def laps_verification(best1, best2):
     #===Start===
-        if best1 is None or best2 is None:
-            print("No valid lap found for one of the drivers.")
-            exit(1)
+    return best1 is not None and best2 is not None
+
+
+# Function to format lap time from timedelta to string
+# Input: lt (laptime)
+# Output: formatted string "MM:SS.mmm"
+# Precondition: none
+# Postcondition: none
+def format_laptime(lt):
+    #===Start===
+    total_ms = lt.total_seconds() * 1000
+    m = int(total_ms // 60000)
+    s = int((total_ms % 60000) // 1000)
+    ms = int(total_ms % 1000)
+    return f"{m:02}:{s:02}.{ms:03}"
