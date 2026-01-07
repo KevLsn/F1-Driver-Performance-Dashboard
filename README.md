@@ -1,4 +1,4 @@
-# F1 Driver Performance Dashboard
+# 🏎️ F1 Driver Performance Dashboard
 
 ![Python](https://img.shields.io/badge/Python-3.9%2B-blue) ![FastF1](https://img.shields.io/badge/FastF1-Enabled-green)
 
@@ -32,10 +32,11 @@ With this dashboard, you can:
 * **FastF1** – fetch and process F1 telemetry data
 * **Matplotlib** – visualizations of speed, sectors, and comparisons
 * **Pandas** – data manipulation and analysis
+* **NumPy** – numerical computations used in plotting
 
 ---
 
-## Installation
+## Installation (Local – without Docker)
 
 ```bash
 # Clone the repository
@@ -48,12 +49,47 @@ pip install -r requirements.txt
 
 ---
 
-## Getting Started
-
-To start the dashboard, simply run:
+## Running the Dashboard
 
 ```bash
 python3 src/main.py
+```
+
+---
+
+## 🐳 Running with Docker (Recommended)
+
+Docker guarantees the project runs **identically on any machine**.
+
+### Requirements
+
+* Docker Desktop (macOS / Windows / Linux)
+
+> Make sure Docker is running before continuing
+
+### Build the Docker image
+
+```bash
+docker build -t f1-dashboard .
+```
+
+### Run the dashboard
+
+```bash
+docker run --rm -it f1-dashboard
+```
+
+---
+
+## Dependencies
+
+All direct dependencies are declared in `requirements.txt`:
+
+```txt
+fastf1==3.3.0
+matplotlib>=3.5.0
+pandas>=1.5.0
+numpy>=1.23.0
 ```
 
 ---
