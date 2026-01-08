@@ -3,9 +3,13 @@
 #DESCRIPTION : Visualization plots for F1 Driver Performance Dashboard
 
 # === Imports ===
-import fastf1.plotting
-from matplotlib import pyplot as plt
+import os
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import numpy as np
+import fastf1.plotting
+
 
 # ============================
 # Speed Comparison Components
@@ -59,8 +63,12 @@ def plot_speed_comparison(tel1, tel2, driver1, driver2, year, gp_name, session_t
         # Adjust y-limits to show labels clearly
         ax.set_ylim([v_min - 40, v_max + 20])
 
+    os.makedirs("output", exist_ok=True)
+
     plt.tight_layout()
-    plt.show()
+    plt.savefig("output/circuit_map.png", dpi=150)
+    plt.close()
+
 
 
 # ============================
@@ -157,4 +165,9 @@ def plot_circuit_map(circuit_info, session, THEME):
     plt.xticks([])
     plt.yticks([])
     plt.axis('equal')
-    plt.show()
+    
+    os.makedirs("output", exist_ok=True)
+
+    plt.tight_layout()
+    plt.savefig("output/circuit_map.png", dpi=150)
+    plt.close()
