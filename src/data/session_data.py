@@ -3,6 +3,7 @@
 #DESCRIPTION : Session data handling for F1 Driver Performance Dashboard
 
 # === Imports ===
+import os
 import fastf1
 
 # Theme definitions
@@ -56,13 +57,21 @@ THEMES = {
     }
 }
 
-# Enable FastF1 cache
+# Function to setup FastF1 cache
 # Input: none
 # Output: none
 # Precondition: none
-# Postcondition: FastF1 cache is enabled in 'cache' directory
+# Postcondition: FastF1 cache is set up
 def setup_fastf1_cache():
-    fastf1.Cache.enable_cache('cache')
+    cache_dir = "cache"
+
+    # Create cache directory if it doesn't exist
+    if not os.path.exists(cache_dir):
+        os.makedirs(cache_dir)
+
+    # Enable FastF1 caching
+    fastf1.Cache.enable_cache(cache_dir)
+
 
 # Function to load FastF1 session 
 # Input: year, gp_name, session_type
