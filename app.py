@@ -4,9 +4,9 @@
 
 # === Imports ===
 import streamlit as st
-import data.session_data as sd
-import data.driver_data as dd
-import visualization.plots as pl
+import src.data.session_data as sd
+import src.data.driver_data as dd
+import src.visualization.plots as pl
 
 # ==========================
 # INITIAL SETUP
