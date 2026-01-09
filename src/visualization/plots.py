@@ -3,7 +3,6 @@
 #DESCRIPTION : Visualization plots for F1 Driver Performance Dashboard
 
 # === Imports ===
-import os
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -63,11 +62,8 @@ def plot_speed_comparison(tel1, tel2, driver1, driver2, year, gp_name, session_t
         # Adjust y-limits to show labels clearly
         ax.set_ylim([v_min - 40, v_max + 20])
 
-    os.makedirs("output", exist_ok=True)
-
-    plt.tight_layout()
-    plt.savefig("output/circuit_map.png", dpi=150)
-    plt.close()
+    fig.tight_layout()
+    return fig
 
 
 
@@ -166,8 +162,7 @@ def plot_circuit_map(circuit_info, session, THEME):
     plt.yticks([])
     plt.axis('equal')
     
-    os.makedirs("output", exist_ok=True)
 
-    plt.tight_layout()
-    plt.savefig("output/circuit_map.png", dpi=150)
-    plt.close()
+    fig.tight_layout()
+    return fig
+

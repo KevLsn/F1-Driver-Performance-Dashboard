@@ -64,46 +64,6 @@ THEMES = {
 def setup_fastf1_cache():
     fastf1.Cache.enable_cache('cache')
 
-
-# Function to choose theme mode
-# Input: none
-# Output: mode, theme_colors (selected mode and corresponding colors)
-# Precondition: none
-# Postcondition: theme mode is chosen and applied
-def choose_theme_mode():
-    #===Start===
-    while True:
-        mode = input("Choose theme mode ('bright', 'dark', 'Mercedes', 'McLaren', 'RedBull', 'Ferrari'): ").strip().lower()
-        if mode in THEMES:
-            # Apply FastF1 plotting style for base brightness
-            if mode in ("dark", "redbull", "ferrari", "mercedes", "mclaren"):
-                fastf1.plotting.setup_mpl(mpl_timedelta_support=True, color_scheme='fastf1')
-            else:
-                fastf1.plotting.setup_mpl(mpl_timedelta_support=True, color_scheme='fastf1-bright')
-            return mode, THEMES[mode]
-        else:
-            print("Invalid choice. Pick from: " + ", ".join(THEMES.keys()))
-
-
-# Function to choose the GP
-# Input: none
-# Output: year, gp_name, session_type
-# Precondition: none
-# Postcondition: none
-def choose_gp():
-    #===Start===
-    while True:
-        try:
-            year = int(input("Enter the year of the GP (e.g., 2025): "))
-            gp_name = input("Enter the name of the GP (e.g., Monza, Silverstone): ").strip()
-            session_type = input("Session type (R = Race, Q = Qualifying, FP1 = Practice 1): ").strip().upper()
-            # Validate inputs
-            if session_type not in ['R', 'Q', 'FP1', 'FP2', 'FP3']:
-                raise ValueError("Invalid session type")
-            return year, gp_name, session_type
-        except ValueError as e:
-            print(f"Error: {e}. Please try again.")
-
 # Function to load FastF1 session 
 # Input: year, gp_name, session_type
 # Output: session
