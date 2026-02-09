@@ -2,62 +2,25 @@
 #DATE : 18/10/2025
 #DESCRIPTION : Driver data handling for F1 Driver Performance Dashboard
 
-# Function to choose drivers
-# Input: drivers (list of available drivers by their abbreviations)
-# Output: driver1, driver2 (selected drivers' abbreviations)
+from datetime import timedelta
+from fastf1.core import Lap
+
+
+# Function to verify both laps are valid
+# Input: best1, best2 (Lap objects)
+# Output: bool
 # Precondition: none
-# Postcondition: two different valid drivers are selected
-def choose_drivers(drivers):
-    #===Start===
-    while True:
-
-        driver1 = input("Enter the driver 1 name abbreviation (e.g., HAM, LEC): ").strip().upper()
-        if not driver1:
-            print("Input cannot be empty.")
-            continue
-
-        if driver1 not in drivers:
-            print(driver1, "haven't participated.")
-            continue
-
-        break
-    
-    while True:
-
-        driver2 = input("Enter the driver 2 name abbreviation (e.g., HAM, LEC): ").strip().upper()
-        if not driver2:
-            print("Input cannot be empty.")
-            continue
-    
-        if driver1 == driver2:
-            print("Please choose two different drivers.")
-            continue
-        
-        if driver2 not in drivers:
-            print(driver2, "haven't participated.")
-            continue
-
-        break
-
-    return driver1, driver2
-
-# Function to verify that laps exist
-# Input: best1, best2 (best laps for each driver)
-# Output: none
-# Precondition: none
-# Postcondition: returns True if both laps exist, False otherwise
-def laps_verification(best1, best2):
-    #===Start===
+# Postcondition: returns True if both laps exist
+def laps_verification(best1: Lap, best2: Lap) -> bool:
     return best1 is not None and best2 is not None
 
 
-# Function to format lap time from timedelta to string
-# Input: lt (laptime)
-# Output: formatted string "MM:SS.mmm"
+# Function to format lap time
+# Input: lt (timedelta)
+# Output: str
 # Precondition: none
-# Postcondition: none
-def format_laptime(lt):
-    #===Start===
+# Postcondition: returns formatted lap time string
+def format_laptime(lt: timedelta) -> str:
     total_ms = lt.total_seconds() * 1000
     m = int(total_ms // 60000)
     s = int((total_ms % 60000) // 1000)

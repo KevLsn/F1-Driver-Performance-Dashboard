@@ -7,7 +7,20 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import fastf1.plotting
+from typing import Tuple
+
+# === Constants ===
+# Speed comparison plot constants
+SPEED_LABEL_OFFSET_Y = 30  # pixels below minimum speed for corner labels
+SPEED_LABEL_BUFFER_TOP = 20  # pixels above maximum speed for top margin
+SPEED_LABEL_FONTSIZE = 6  # font size for corner number labels
+
+# Circuit map constants
+CORNER_LABEL_OFFSET_DISTANCE = 500  # pixels from track for corner labels
+CORNER_LABEL_FONTSIZE = 9  # font size for corner labels on circuit map
+TRACK_LINEWIDTH = 2.5  # linewidth for track plotting
 
 
 # ============================
@@ -19,19 +32,29 @@ import fastf1.plotting
 # Output: none
 # Precondition: none
 # Postcondition: speed comparison plot is displayed
-def plot_speed_comparison(tel1, tel2, driver1, driver2, year, gp_name, session_type, circuit_info, THEME):
-    #===Start===
+def plot_speed_comparison(
+    tel1: pd.DataFrame,
+    tel2: pd.DataFrame,
+    driver1: str,
+    driver2: str,
+    year: int,
+    gp_name: str,
+    session_type: str,
+    circuit_info: object,
+    THEME: dict
+) -> plt.Figure:
     fig, ax = plt.subplots(figsize=(12, 6))
 
     # Plot driver speeds
-    ax.plot(tel1['Distance'], tel1['Speed'], label=driver1, color=THEME['primary'])
-    ax.plot(tel2['Distance'], tel2['Speed'], label=driver2, color=THEME['secondary'])
+    ax.plot(tel1['Distance'], tel1['Speed'], label=driver1, color=THEME['primary'], linewidth=2)
+    ax.plot(tel2['Distance'], tel2['Speed'], label=driver2, color=THEME['secondary'], linewidth=2)
 
     # Set labels and title
     ax.set_xlabel('Distance (m)')
     ax.set_ylabel('Speed (km/h)')
     ax.set_title(f"Speed Comparison: {driver1} vs {driver2} - {year} | {gp_name} | {session_type}")
     ax.legend()
+    ax.grid(True, alpha=0.3)
 
     if not circuit_info.corners.empty:
         v_min = min(tel1['Speed'].min(), tel2['Speed'].min())
@@ -52,15 +75,15 @@ def plot_speed_comparison(tel1, tel2, driver1, driver2, year, gp_name, session_t
             label = f"{corner['Number']}{corner['Letter']}"
             ax.text(
                 corner['Distance'],
-                v_min - 30,
+                v_min - SPEED_LABEL_OFFSET_Y,
                 label,
                 va='center_baseline',
                 ha='center',
-                fontsize=6,
+                fontsize=SPEED_LABEL_FONTSIZE,
             )
 
         # Adjust y-limits to show labels clearly
-        ax.set_ylim([v_min - 40, v_max + 20])
+        ax.set_ylim([v_min - SPEED_LABEL_OFFSET_Y - 10, v_max + SPEED_LABEL_BUFFER_TOP])
 
     fig.tight_layout()
     return fig
@@ -77,7 +100,7 @@ def plot_speed_comparison(tel1, tel2, driver1, driver2, year, gp_name, session_t
 # Precondition: none
 # Postcondition: coordinates are rotated by the specified angle
 # Credit to FastF1 library
-def rotate(xy, *, angle):
+def rotate(xy: np.ndarray, *, angle: float) -> np.ndarray:
     rot_mat = np.array([[np.cos(angle), np.sin(angle)],
                         [-np.sin(angle), np.cos(angle)]])
     return np.matmul(xy, rot_mat)
@@ -87,8 +110,7 @@ def rotate(xy, *, angle):
 # Output: none
 # Precondition: none
 # Postcondition: circuit map is displayed
-def plot_circuit_map(circuit_info, session, THEME):
-    #===Start===
+def plot_circuit_map(circuit_info: object, session: object, THEME: dict) -> plt.Figure:
     # === Setup figure ===
     fig, ax = plt.subplots(figsize=(8, 8))
 
@@ -116,10 +138,10 @@ def plot_circuit_map(circuit_info, session, THEME):
         rotated_track[:, 0],
         rotated_track[:, 1],
         color=THEME["track"],
-        linewidth=2.5
+        linewidth=TRACK_LINEWIDTH
     )
 
-    offset_vector = [500, 0]  # offset length is chosen arbitrarily to 'look good'
+    offset_vector = [CORNER_LABEL_OFFSET_DISTANCE, 0]
 
     # Iterate over all corners.
     for _, corner in circuit_info.corners.iterrows():
@@ -149,7 +171,7 @@ def plot_circuit_map(circuit_info, session, THEME):
             txt,
             va='center',
             ha='center',
-            size=9,
+            size=CORNER_LABEL_FONTSIZE,
             color=THEME["text"]
         )
 
@@ -161,7 +183,6 @@ def plot_circuit_map(circuit_info, session, THEME):
     plt.xticks([])
     plt.yticks([])
     plt.axis('equal')
-    
 
     fig.tight_layout()
     return fig

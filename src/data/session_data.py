@@ -4,7 +4,9 @@
 
 # === Imports ===
 import os
+from typing import Optional
 import fastf1
+from fastf1.core import Session
 
 # Theme definitions
 THEMES = {
@@ -62,7 +64,7 @@ THEMES = {
 # Output: none
 # Precondition: none
 # Postcondition: FastF1 cache is set up
-def setup_fastf1_cache():
+def setup_fastf1_cache() -> None:
     cache_dir = "cache"
 
     # Create cache directory if it doesn't exist
@@ -75,17 +77,19 @@ def setup_fastf1_cache():
 
 # Function to load FastF1 session 
 # Input: year, gp_name, session_type
-# Output: session
+# Output: session or None if loading fails
 # Precondition: none
-# Postcondition: session data is loaded
-def loading_FastF1_session(year, gp_name, session_type):
-    #===Start===
+# Postcondition: session data is loaded or None is returned on error
+def loading_FastF1_session(year: int, gp_name: str, session_type: str) -> Optional[Session]:
     try:
         print(f"Loading data for {gp_name} {year} - {session_type}...")
         session = fastf1.get_session(year, gp_name, session_type)
         session.load()
         return session
+    except ValueError as e:
+        print(f"Error: Invalid session parameters - {e}")
+        return None
     except Exception as e:
         print(f"Error loading session: {e}")
-        exit(1)
+        return None
 
