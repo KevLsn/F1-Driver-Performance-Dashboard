@@ -1,5 +1,5 @@
 # Author : Loussouarn Kévin
-# DATE : 18/10/2025
+# DATE : 03/02/2026
 # DESCRIPTION : Streamlit app for F1 Driver Performance Dashboard
 
 # === Imports ===
@@ -8,6 +8,9 @@ from datetime import date
 import src.data.session_data as sd
 import src.data.driver_data as dd
 import src.visualization.plots as pl
+import src.strategy.predictor as sp
+import src.strategy.race_engine as sr
+import src.strategy.optimizer as so
 
 # ==========================
 # INITIAL SETUP
@@ -25,8 +28,9 @@ feature = st.sidebar.radio(
     "Select a feature",
     [
         "Overview",
-        "Speed Comparison",
         "Circuit Map",
+        "Speed Comparison",
+        "Race Strategy Engine",
         "Championship Scenario (Coming soon)"
     ]
 )
@@ -34,12 +38,7 @@ feature = st.sidebar.radio(
 # ==========================
 # SIDEBAR — SESSION SELECTION
 # ==========================
-# Clear session selection when switching to a feature that doesn't need it
-if feature not in ["Speed Comparison", "Circuit Map"]:
-    if "session" in st.session_state:
-        del st.session_state.session
-
-if feature in ["Speed Comparison", "Circuit Map"]:
+if feature in ["Speed Comparison", "Circuit Map", "Race Strategy Engine"]:
     st.sidebar.divider()
     st.sidebar.subheader("📅 Session Selection")
 
@@ -55,7 +54,6 @@ if feature in ["Speed Comparison", "Circuit Map"]:
             if session is None:
                 st.error("Failed to load session. Please check the season, Grand Prix name, and session type.")
             else:
-                # Check if session date is in the past
                 try:
                     session_date = session.date.date() if hasattr(session.date, 'date') else session.date
                     if session_date > date.today():
@@ -65,6 +63,8 @@ if feature in ["Speed Comparison", "Circuit Map"]:
                         st.success("Session loaded successfully!")
                 except Exception as e:
                     st.error(f"Failed to validate session date: {e}")
+else:
+    st.session_state.pop("session", None)
 
 # ==========================
 # SIDEBAR — THEME SELECTION
@@ -74,11 +74,12 @@ if feature in ["Speed Comparison", "Circuit Map"]:
     st.sidebar.subheader("🎨 Theme Selection")
     theme_mode = st.sidebar.selectbox("Plot theme", list(sd.THEMES.keys()))
     theme = sd.THEMES[theme_mode]
+else:
+    theme = None
 
 # ==========================
-# OVERVIEW PAGE
+# OVERVIEW
 # ==========================
-# Overview page
 if feature == "Overview":
     st.header("Welcome 👋")
     st.markdown(
@@ -86,6 +87,7 @@ if feature == "Overview":
         This dashboard allows you to explore **Formula 1 session data** using real telemetry.
 
         **You can:**
+        - Predict the optimal strategy for an upcomming race
         - Compare the fastest laps of two drivers (speed vs distance)
         - Visualize the circuit layout
         - Explore different sessions (practice, qualifying, race)
@@ -94,21 +96,38 @@ if feature == "Overview":
 
         Enjoy the analysis! 🏁"""
         )
+    
+# ==========================
+# CIRCUIT MAP
+# ==========================
+elif feature == "Circuit Map":
+
+    st.header("🗺️ Circuit Map")
+
+    if "session" not in st.session_state:
+        st.info("👈 Load a session first.")
+    else:
+        session = st.session_state.session
+
+        if st.button("Show Circuit Map"):
+            circuit_info = session.get_circuit_info()
+            fig = pl.plot_circuit_map(circuit_info, session, theme)
+            st.pyplot(fig)
 
 # ==========================
 # SPEED COMPARISON
 # ==========================
 elif feature == "Speed Comparison":
+
     st.header("📊 Speed Comparison")
     st.caption("Compare fastest lap telemetry between two drivers")
 
-    # Check if a session is loaded
     if "session" not in st.session_state:
         st.info("👈 Please select a **season, Grand Prix, and session** from the sidebar to start Speed Comparison.")
     else:
+
         session = st.session_state.session
 
-        # Display loaded session in a clean row of metrics
         col1, col2, col3 = st.columns(3)
         col1.metric("Season", year)
         col2.metric("Grand Prix", session.event["EventName"])
@@ -122,7 +141,6 @@ elif feature == "Speed Comparison":
         with col2:
             driver2 = st.selectbox("Driver 2", [d for d in drivers if d != driver1], index=0, key="driver2_select")
 
-        # Initialize session state for storing comparison data
         if "comparison_data" not in st.session_state:
             st.session_state.comparison_data = None
 
@@ -164,32 +182,152 @@ elif feature == "Speed Comparison":
 
             # Metrics for lap times
             m1, m2 = st.columns(2)
-            m1.metric(driver1, dd.format_laptime(data["best1"]["LapTime"]))
-            m2.metric(driver2, dd.format_laptime(data["best2"]["LapTime"]))
+            lap_time_1 = data["best1"]["LapTime"]
+            lap_time_2 = data["best2"]["LapTime"]
 
-            st.info("This comparison highlights speed differences along the lap distance.")
+            m1.metric(driver1, dd.format_laptime(lap_time_1))
+            m2.metric(driver2, dd.format_laptime(lap_time_2))
+
+            delta_seconds = (lap_time_2 - lap_time_1).total_seconds()
+
+            if delta_seconds > 0:
+                st.success(
+                    f"🏁 **{driver1} is {delta_seconds:.3f}s faster than {driver2} on the fastest lap.**"
+                )
+            elif delta_seconds < 0:
+                st.success(
+                    f"🏁 **{driver2} is {abs(delta_seconds):.3f}s faster than {driver1} on the fastest lap.**"
+                )
+            else:
+                st.info("🏁 Both drivers set identical fastest lap times.")
+
+            st.caption("This comparison highlights speed differences along the lap distance.")
 
 # ==========================
-# CIRCUIT MAP
+# RACE STRATEGY ENGINE
 # ==========================
-elif feature == "Circuit Map":
-    st.header("🗺️ Circuit Map")
-    st.caption("Track layout and racing line visualization")
+elif feature == "Race Strategy Engine":
 
-    # Check if a session is loaded
+    st.header("🏁 Race Strategy Simulator")
+    st.caption("Predict optimal 1-stop strategy using tyre degradation data from practice sessions.")
+
     if "session" not in st.session_state:
-        st.info("👈 Please select a **season, Grand Prix, and session** from the sidebar to view the Circuit Map.")
+        st.info(
+            "👈 **Please load a Practice session (FP1 or FP2) first.**  \n"
+            "These sessions include long-run simulations that provide the tyre degradation data required for race strategy modeling."
+        )
     else:
         session = st.session_state.session
 
-        if st.button("Show Circuit Map"):
-            with st.spinner("Rendering circuit map..."):
-                circuit_info = session.get_circuit_info()
-                fig = pl.plot_circuit_map(circuit_info, session, theme)
-            st.pyplot(fig)
+        if session.name not in ["Practice 1", "Practice 2"]:
+            st.warning(
+                "⚠️ Strategy prediction is only available for FP1 or FP2. "
+                "These sessions contain representative race-pace long runs "
+                "used to model tyre degradation."
+            )
+            st.stop()
+
+        drivers = sorted(session.laps["Driver"].unique().tolist())
+        driver = st.selectbox("Select Driver", drivers)
+
+        # Race laps input
+        if "race_laps" not in st.session_state:
+            st.session_state.race_laps = 50
+
+        st.session_state.race_laps = st.number_input(
+            "Race laps (upcoming race)",
+            min_value=10,
+            max_value=100,
+            value=st.session_state.race_laps,
+            help="Enter the total number of laps for the upcoming race."
+        )
+
+        race_laps = st.session_state.race_laps
+
+        if st.button("Run Strategy Optimization"):
+
+            with st.spinner("Building predictive model..."):
+
+                # Build practice sessions dictionary.
+                # Designed to support multiple sessions in the future,
+                # but currently using only the selected session.
+                sessions = {session.name: session}
+
+                # Optionally load the other main practice session (FP1 or FP2) to improve future model accuracy.
+                # Currently, only the selected session is used for prediction.
+                # Attempt to load complementary race-simulation session
+                #other_session_type = "FP2" if session.name == "Practice 1" else "FP1"
+                #other_session = sd.loading_FastF1_session(year, gp_name, other_session_type)
+
+                #if other_session is not None:
+                #    sessions[other_session.name] = other_session
+
+                st.caption(f"📊 Model built using: {', '.join(sessions.keys())}")
+
+                # Predictor
+                predictor = sp.Predictor(sessions, driver)
+                params = predictor.get_parameters()
+
+                if not params:
+                    st.error("Not enough long-run data.")
+                    st.stop()
+
+                # Engine
+                engine = sr.RaceEngine(
+                    parameters=params,
+                    race_laps=race_laps
+                )
+
+                optimizer = so.StrategyOptimizer(engine)
+
+                results = optimizer.optimize_1stop(
+                    available_compounds=list(params.keys()),
+                    min_pit_lap=10,
+                    max_pit_lap=race_laps - 10
+                )
+
+                if not results:
+                    st.error("No valid strategies found.")
+                    st.stop()
+
+                st.subheader("🏆 Top 5 Strategies")
+                best_time = results[0]["total_time"]
+
+                for i, strat in enumerate(results[:5], 1):
+                    delta = strat["total_time"] - best_time
+
+                    st.write(
+                        f"**{i}. {strat['compounds'][0]} → {strat['compounds'][1]}**  |  "
+                        f"Pit Lap: {strat['pit_lap']}  |  "
+                        f"Total: {strat['total_time']:.2f}s  |  "
+                        f"Δ {delta:.2f}s"
+                    )
+
 
 # ==========================
-# COMING SOON
+#  CHAMPIONSHIP SCENARIO (COMING SOON)
 # ==========================
-elif feature.startswith("Championship"):
-    st.warning("🚧 Feature not developed yet. Coming soon!")
+elif feature == "Championship Scenario (Coming soon)":
+
+    st.header("🏆 Championship Scenario Simulator")
+    st.caption("Simulate title fight outcomes based on race results and FIA points system")
+
+    st.info(
+        """
+        🚧 **Module under development**
+
+        The Championship Scenario Simulator will allow you to explore
+        how different race outcomes impact the Drivers' Championship standings.
+
+        **Planned features:**
+        - 📊 Automatic calculation of championship standings
+        - 🧮 FIA official points system integration (including fastest lap (only for sessions happening before 2025))
+        - 🏁 Simulation of remaining races in the season
+        - 🔄 What-if scenarios (DNF, podium swaps, alternative results)
+        - 📈 Title probability estimation based on performance trends
+        - 👥 Comparison between two drivers fighting for the championship
+
+        This module will transform single-race analysis into
+        a full-season strategic projection tool.
+        """
+    )    

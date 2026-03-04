@@ -177,10 +177,8 @@ streamlit>=1.40.0
 F1-Driver-Performance-Dashboard/
 ├── app.py                          # Main Streamlit application
 ├── requirements.txt                # Production dependencies
-├── pyproject.toml                  # Project configuration
 ├── Dockerfile                      # Docker configuration
 ├── README.md                       # This file
-├── CODE_REVIEW.md                  # Code review findings
 ├── cache/                          # Local FastF1 data cache
 └── src/
     ├── data/

@@ -1,5 +1,5 @@
 #Author : Loussouarn Kévin
-#DATE : 18/10/2025
+#DATE : 03/02/2026
 #DESCRIPTION : Session data handling for F1 Driver Performance Dashboard
 
 # === Imports ===
@@ -93,3 +93,18 @@ def loading_FastF1_session(year: int, gp_name: str, session_type: str) -> Option
         print(f"Error loading session: {e}")
         return None
 
+# Function to get the scheduled number of laps for a GP in a given year
+# Input: year (int), gp_name (str)
+# Output: total laps (int) or None if unavailable
+# Precondition: none
+# Postcondition: returns total laps for the specified GP and year, or None if data is unavailable
+def get_scheduled_race_laps(year: int, gp_name: str) -> Optional[int]:
+    try:
+        race_session = loading_FastF1_session(year, gp_name, "R")
+        if race_session is not None:
+            return race_session.event["TotalLaps"]
+        else:
+            return None
+    except Exception as e:
+        print(f"Error getting scheduled race laps: {e}")
+        return None
