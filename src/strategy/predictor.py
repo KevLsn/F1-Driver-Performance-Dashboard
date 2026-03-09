@@ -14,50 +14,51 @@ from fastf1.core import Session
 class Predictor:
 
     # Constructor
-    # Input: sessions (dict of session_type -> Session), driver (driver code string)
+    # Input: sessions (dict of session_type -> Session), driver (str)
     # Output: Predictor object
     # Precondition: sessions must contain at least one practice session
     # Postcondition: Predictor object is initialized with session selection
     def __init__(self, sessions: Dict[str, Session], driver: str):
         self.sessions = sessions
         self.driver = driver
-        self.session = self.select_practice_session()
         self.parameters = {}
-
-    # Select the most representative practice session
-    # Input: none
-    # Output: Session object
-    # Precondition: sessions dict contains at least FP1 or FP2
-    # Postcondition: Returns FP2 if available, else FP1
-    def select_practice_session(self) -> Session:
-        for key in ["Practice 2", "Practice 1"]:
-            if key in self.sessions:
-                return self.sessions[key]
-        raise ValueError("No practice session available for prediction")
 
     # Extract long stints per tyre compound
     # Input: min_laps (int) – minimum number of laps to consider a stint
     # Output: Dict[compound -> list of DataFrames], each DataFrame = stint
-    # Precondition: session contains laps with valid LapTime and TyreCompound
+    # Precondition: session contains laps with valid LapTime and Compound data
     # Postcondition: Only stints with at least min_laps laps are returned
     def extract_long_runs(self, min_laps: int = 3) -> Dict[str, List[pd.DataFrame]]:
 
-        # Get laps for the driver
-        laps = self.session.laps.pick_drivers(self.driver).reset_index()
-        
+        # Combine all laps from all sessions for the driver
+        all_laps = pd.DataFrame()
+
+        # Loop through all sessions
+        for session_name, session in self.sessions.items():
+            if not hasattr(session, 'laps') or session.laps is None:
+                continue
+
+            laps = session.laps.pick_drivers(self.driver).reset_index()
+            laps['session'] = session_name  # optional: track which session each lap comes from
+            all_laps = pd.concat([all_laps, laps], ignore_index=True)
+
+        if all_laps.empty:
+            raise ValueError(f"No laps found for driver {self.driver} in any session.")
+
         # Filter invalid laps
         laps = laps[laps['LapTime'].notna()]
-        if 'TrackStatus' in laps.columns: # Filter out non-green laps
+        # Filter out non-green laps (e.g. yellow flags, safety car)
+        if 'TrackStatus' in laps.columns: 
             laps = laps[laps['TrackStatus'] == '1']
 
-        # Convert lap time to seconds
+        # Convert lap time to seconds for easier calculations
         laps["LapSeconds"] = laps["LapTime"].dt.total_seconds()
 
-        # Remove outliers: keep laps within ±7% of median pace
+        # Remove extreme slow laps (likely pit / traffic)
         median_pace = laps["LapSeconds"].median()
-        laps = laps[(laps["LapSeconds"] >= median_pace * 0.93) & (laps["LapSeconds"] <= median_pace * 1.07)]
+        laps = laps[laps["LapSeconds"] < median_pace * 1.2]
 
-
+        # Group by compound and stint, only keep stints with at least min_laps laps
         stints_dict = {}
         for compound in laps["Compound"].dropna().unique():
 
@@ -70,8 +71,6 @@ class Predictor:
             if stints:
                 stints_dict[compound] = stints
 
-        print(laps[["LapNumber", "Stint", "Compound", "LapTime"]])
-
         return stints_dict
 
     # Estimate base pace, degradation, and variance per compound
@@ -80,27 +79,43 @@ class Predictor:
     # Precondition: extract_long_runs must return at least one valid stint
     # Postcondition: self.parameters is populated and returned
     def estimate_parameters(self) -> Dict[str, Dict[str, float]]:
+
+        # Extract stints
         stints = self.extract_long_runs()
         params = {}
+
+        # For each compound, fit a linear model to lap times vs lap number to estimate degradation
         for compound, stint_list in stints.items():
-            all_laps = []
+
+            # Collect lap times and fit linear regression for each stint, then average results
+            slopes = []
+            intercepts = []
+            all_times = []
+
             for stint in stint_list:
-                all_laps.append(stint['LapTime'].dt.total_seconds().values)
-            if not all_laps:
+                lap_times = stint['LapTime'].dt.total_seconds().values
+                if len(lap_times) < 2:
+                    continue
+
+                x = np.arange(len(lap_times))
+                y = lap_times
+
+                A = np.vstack([x, np.ones(len(x))]).T
+                slope, intercept = np.linalg.lstsq(A, y, rcond=None)[0]
+
+                slopes.append(slope)
+                intercepts.append(intercept)
+                all_times.extend(y)
+
+            if not slopes:
                 continue
-            lap_times = np.concatenate(all_laps)
-            x = np.arange(len(lap_times))
-            y = lap_times
-            if len(x) < 2:
-                continue
-            A = np.vstack([x, np.ones(len(x))]).T
-            slope, intercept = np.linalg.lstsq(A, y, rcond=None)[0]
-            variance = float(np.std(y))
+
             params[compound] = {
-                "base_pace": timedelta(seconds=float(intercept)),
-                "degradation": float(slope),
-                "variance": variance
+                "base_pace": timedelta(seconds=float(np.mean(intercepts))),      
+                "degradation": float(np.mean(slopes)),                           
+                "variance": float(np.std(all_times))                             
             }
+
         self.parameters = params
         return params
 
