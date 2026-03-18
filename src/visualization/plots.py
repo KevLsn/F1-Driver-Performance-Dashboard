@@ -101,8 +101,7 @@ def plot_speed_comparison(
 # Postcondition: coordinates are rotated by the specified angle
 # Credit to FastF1 library
 def rotate(xy: np.ndarray, *, angle: float) -> np.ndarray:
-    rot_mat = np.array([[np.cos(angle), np.sin(angle)],
-                        [-np.sin(angle), np.cos(angle)]])
+    rot_mat = np.array([[np.cos(angle), np.sin(angle)], [-np.sin(angle), np.cos(angle)]])
     return np.matmul(xy, rot_mat)
 
 # Function to plot circuit map (inspired by FastF1 library)
@@ -187,3 +186,29 @@ def plot_circuit_map(circuit_info: object, session: object, THEME: dict) -> plt.
     fig.tight_layout()
     return fig
 
+#
+def plot_position_changes(session: object) -> plt.Figure:
+
+    # Setup FastF1 plotting style
+    fastf1.plotting.setup_mpl(mpl_timedelta_support=False, color_scheme='fastf1')
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    for drv in session.drivers:
+        drv_laps = session.laps.pick_drivers(drv)
+
+        abb = drv_laps['Driver'].iloc[0]
+        style = fastf1.plotting.get_driver_style(identifier=abb,
+                                                style=['color', 'linestyle'],
+                                                session=session)
+
+        ax.plot(drv_laps['LapNumber'], drv_laps['Position'],
+                label=abb, **style)
+
+    ax.set_ylim([20.5, 0.5])
+    ax.set_yticks([1, 5, 10, 15, 20])
+    ax.set_xlabel('Lap')
+    ax.set_ylabel('Position')
+    ax.legend(bbox_to_anchor=(1.0, 1.02))
+    plt.tight_layout()
+    return fig

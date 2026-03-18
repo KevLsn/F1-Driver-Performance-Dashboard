@@ -15,6 +15,7 @@ With this dashboard, you can:
 * Select the year, Grand Prix, and session type
 * Compare the fastest lap of two drivers
 * Visualize circuits
+* Track position changes of drivers during a race
 * Simulate predictive 1-stop race strategies  
 * Customize themes for all visualizations
 * Access the app publicly via Streamlit Cloud
@@ -27,6 +28,7 @@ With this dashboard, you can:
 * **Automatic data retrieval** with FastF1 caching
 * **Fastest lap comparison** with speed & sector visualization
 * **Circuit map visualization** with corner labels  
+* **Position Changes** plot showing all drivers’ race positions per lap
 * **Predictive 1-stop** race strategy simulation  
 * **Theme customization** for all visualizations  
 * **Error handling** for invalid inputs or missing drivers
@@ -144,6 +146,11 @@ Then open [http://localhost:8501](http://localhost:8501) in your browser.
 - Input **Race laps** for the upcoming race  
 - Click **"Run Strategy Optimization"** to predict optimal 1-stop strategies  
 
+### 7. Position Changes
+- Select the **Position Changes** feature from the sidebar  
+- Pick a **Race (R)** session and click **"Load Session"**  
+- View the driver’s lap-by-lap position throughout the race  
+- ⚠️ Only Race (R) sessions are supported
 ---
 
 ## Troubleshooting

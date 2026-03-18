@@ -32,6 +32,7 @@ feature = st.sidebar.radio(
         "Overview",
         "Circuit Map",
         "Speed Comparison",
+        "Position Changes",
         "Race Strategy Engine",
         "Championship Scenario (Coming soon)"
     ]
@@ -40,7 +41,7 @@ feature = st.sidebar.radio(
 # ==========================
 # SIDEBAR — SESSION SELECTION
 # ==========================
-if feature in ["Speed Comparison", "Circuit Map", "Race Strategy Engine"]:
+if feature in ["Speed Comparison", "Circuit Map", "Position Changes", "Race Strategy Engine"]:
     st.sidebar.divider()
     st.sidebar.subheader("📅 Session Selection")
 
@@ -90,16 +91,18 @@ if feature == "Overview":
         """
         This dashboard allows you to explore **Formula 1 session data** using real telemetry.
 
-        **You can:**
-        - Predict the optimal strategy for an upcomming race
-        - Compare the fastest laps of two drivers (speed vs distance)
-        - Visualize the circuit layout
-        - Explore different sessions (practice, qualifying, race)
+        **Features include:**
+        - Predicting the optimal strategy for an upcoming race
+        - Comparing the fastest laps of two drivers (speed vs distance)
+        - Visualizing the circuit layout
+        - Tracking position changes of drivers during a race
+        - Exploring different session types (Practice, Qualifying, Race)
 
         👉 Start by selecting a feature in the sidebar.
 
-        Enjoy the analysis! 🏁"""
-        )
+        Enjoy your analysis! 🏁
+        """
+    )
     
 # ==========================
 # CIRCUIT MAP
@@ -201,6 +204,21 @@ elif feature == "Speed Comparison":
                 st.info("🏁 Both drivers set identical fastest lap times.")
 
             st.caption("This comparison highlights speed differences along the lap distance.")
+
+elif feature == "Position Changes":
+
+    st.header("📈 Position Changes")
+    st.caption("Visualize the position evolution of all drivers during a race.")
+
+    # Check if session is loaded and is a race
+    if "session" not in st.session_state:
+        st.info("👈 Please load a session first.")
+    elif st.session_state.session.name != "Race":
+        st.warning("⚠️ Please select a Race session (R) to view position changes.")
+    else:
+        session = st.session_state.session
+        fig = pl.plot_position_changes(session)
+        st.pyplot(fig)
 
 # ==========================
 # RACE STRATEGY ENGINE
