@@ -11,8 +11,11 @@ import src.visualization.plots as pl
 import src.strategy.predictor as sp
 import src.strategy.race_engine as sr
 import src.strategy.optimizer as so
-from src.visualization.utils import format_total, format_delta
+import src.visualization.utils as vu
 import src.visualization.theme as vt
+import src.analysis.lap_metrics as al
+import src.analysis.driver_performance as ad
+import pandas as pd
 
 # ==========================
 # INITIAL SETUP
@@ -33,6 +36,7 @@ feature = st.sidebar.radio(
         "Circuit Map",
         "Speed Comparison",
         "Position Changes",
+        "Driver Analysis",
         "Race Strategy Engine",
         "Championship Scenario (Coming soon)"
     ]
@@ -41,7 +45,7 @@ feature = st.sidebar.radio(
 # ==========================
 # SIDEBAR — SESSION SELECTION
 # ==========================
-if feature in ["Speed Comparison", "Circuit Map", "Position Changes", "Race Strategy Engine"]:
+if feature in ["Speed Comparison", "Circuit Map", "Position Changes", "Race Strategy Engine", "Driver Analysis"]:
     st.sidebar.divider()
     st.sidebar.subheader("📅 Session Selection")
 
@@ -96,6 +100,7 @@ if feature == "Overview":
         - Comparing the fastest laps of two drivers (speed vs distance)
         - Visualizing the circuit layout
         - Tracking position changes of drivers during a race
+        - Driver Analysis: evaluate driver performance, theoretical lap potential, and consistency
         - Exploring different session types (Practice, Qualifying, Race)
 
         👉 Start by selecting a feature in the sidebar.
@@ -205,6 +210,10 @@ elif feature == "Speed Comparison":
 
             st.caption("This comparison highlights speed differences along the lap distance.")
 
+
+# ==========================
+# POSITION CHANGES
+# ==========================
 elif feature == "Position Changes":
 
     st.header("📈 Position Changes")
@@ -219,6 +228,135 @@ elif feature == "Position Changes":
         session = st.session_state.session
         fig = pl.plot_position_changes(session)
         st.pyplot(fig)
+
+# ==========================
+# DRIVER ANALYSIS  
+# ==========================
+elif feature == "Driver Analysis":
+
+    st.header("⚙️ Driver Performance Analysis")
+    st.caption("Deep analysis of driver performance using telemetry and lap data")
+
+    if "session" not in st.session_state:
+        st.info("👈 Load a session first.")
+    else:
+
+        session = st.session_state.session
+
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Season", year)
+        col2.metric("Grand Prix", session.event["EventName"])
+        col3.metric("Session", session.name)
+
+        drivers = sorted(session.laps["Driver"].unique().tolist())
+        driver = st.selectbox("Select Driver", drivers)
+
+        if st.button("Analyze Driver"):
+
+            raw_laps = session.laps.pick_driver(driver)
+
+            clean_laps = (raw_laps.pick_quicklaps().dropna(subset=["LapTime"]))
+            clean_laps = clean_laps[clean_laps["LapTime"] < clean_laps["LapTime"].quantile(0.95)]
+
+            # ======================
+            # CORE METRICS
+            # ======================
+            summary = al.full_driver_summary(clean_laps)
+
+
+            if not summary:
+                st.error("No valid laps for this driver.")
+                st.stop()
+
+            # ======================
+            # ADVANCED REPORT
+            # ======================
+            report = ad.full_driver_report(clean_laps, summary)
+
+            # ======================
+            # KEY METRICS
+            # ======================
+            st.subheader("📊 Key Performance Metrics")
+
+            c1, c2, c3 = st.columns(3)
+            c1.metric("🏁 Best Lap", vu.fmt(summary["best_lap"]))
+            c2.metric("🚀 Theoretical Best", vu.fmt(summary["theoretical_best"]))
+            c3.metric("📉 Potential Gain", vu.fmt_delta(summary["potential_gain"]))
+
+            # ======================
+            # INSIGHT 
+            # ======================
+            st.subheader("🧠 Insight")
+            st.write(report["insight"])
+
+            # ======================
+            # PERFORMANCE SCORE
+            # ======================
+            st.subheader("🏆 Performance Score")
+            st.metric("Score", f"{report['score']} / 100")
+            st.progress(report['score'] / 100)
+            st.caption("Score based on pace, consistency, and potential improvement")
+
+            # ======================
+            # SECTOR ANALYSIS
+            # ======================
+            st.subheader("📊 Sector Analysis")
+
+            s = summary["best_sectors"]
+
+            col1, col2, col3 = st.columns(3)
+            col1.metric("S1", vu.fmt(s["S1"]))
+            col2.metric("S2", vu.fmt(s["S2"]))
+            col3.metric("S3", vu.fmt(s["S3"]))
+
+            st.write(f"⚠️ Weakest sector: **{report['weakest_sector']}**")
+
+            # ======================
+            # SECTOR RANKING
+            # ======================
+            st.subheader("📊 Sector Ranking (Fastest → Slowest)")
+
+            for sector, time in report["sector_ranking"].items():
+                st.write(f"{sector}: {vu.fmt(time)}")
+
+            # ======================
+            # CONSISTENCY
+            # ======================
+            st.subheader("📈 Consistency Analysis")
+
+            col1, col2 = st.columns(2)
+            col1.metric("Average Lap", vu.fmt(summary["average_lap"]))
+
+            if summary["consistency"] is not None:
+                col2.metric("Standard Deviation", vu.fmt(summary["consistency"]))
+            else:
+                col2.metric("Standard Deviation", "N/A")
+
+            # ======================
+            # LAP TIME ANALYSIS
+            # ======================
+            st.subheader("📈 Lap Time Analysis")
+
+            raw_laps = session.laps.pick_driver(driver)
+
+            lap_data = raw_laps[["LapNumber", "LapTime"]].dropna()
+
+            if lap_data.empty:
+                st.warning("Not enough valid lap data.")
+            else:
+                lap_data["LapTime_s"] = lap_data["LapTime"].dt.total_seconds()
+
+                st.line_chart(lap_data.set_index("LapNumber")["LapTime_s"])
+
+                best = lap_data.loc[lap_data["LapTime_s"].idxmin()]
+                worst = lap_data.loc[lap_data["LapTime_s"].idxmax()]
+                mean = lap_data["LapTime_s"].mean()
+
+                st.caption(f"""
+                🟢 Best lap: Lap {int(best["LapNumber"])} ({vu.fmt(best["LapTime"])})  
+                🔴 Worst lap: Lap {int(worst["LapNumber"])} ({vu.fmt(worst["LapTime"])})  
+                📊 Average pace: {vu.fmt(pd.to_timedelta(mean, unit="s"))}
+                """)
 
 # ==========================
 # RACE STRATEGY ENGINE
@@ -312,8 +450,8 @@ elif feature == "Race Strategy Engine":
                     st.write(
                         f"**{i}. {strat['compounds'][0]} → {strat['compounds'][1]}**  |  "
                         f"Pit Lap: {strat['pit_lap']}  |  "
-                        f"Total: {format_total(strat['total_time'])}  |  "
-                        f"Δ {format_delta(delta)}"
+                        f"Total: {vu.format_total(strat['total_time'])}  |  "
+                        f"Δ {vu.format_delta(delta)}"
                     )
 
 

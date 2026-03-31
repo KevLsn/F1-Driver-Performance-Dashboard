@@ -14,8 +14,9 @@ With this dashboard, you can:
 
 * Select the year, Grand Prix, and session type
 * Compare the fastest lap of two drivers
-* Visualize circuits
-* Track position changes of drivers during a race
+* Visualize circuit layouts with corner labels
+* **Track position changes** of all drivers throughout a race
+* **Analyze individual driver performance** with lap metrics, theoretical best times, and consistency analysis
 * Simulate predictive 1-stop race strategies  
 * Customize themes for all visualizations
 * Access the app publicly via Streamlit Cloud
@@ -26,14 +27,19 @@ With this dashboard, you can:
 
 * **Interactive session & driver selection via Streamlit sidebar**
 * **Automatic data retrieval** with FastF1 caching
-* **Fastest lap comparison** with speed & sector visualization
-* **Circuit map visualization** with corner labels  
-* **Position Changes** plot showing all drivers’ race positions per lap
-* **Predictive 1-stop** race strategy simulation  
-* **Theme customization** for all visualizations  
+* **Speed Comparison** – Compare fastest lap telemetry between two drivers with speed vs distance visualization
+* **Circuit Map Visualization** – Interactive circuit layout with corner labels  
+* **Position Changes** – Track all drivers' race positions lap-by-lap during a race
+* **Driver Analysis** – Deep performance insights including:
+  - Best lap time & theoretical peak potential
+  - Performance score (0-100) based on pace and consistency
+  - Sector-by-sector breakdown and weakness identification
+  - Consistency analysis with lap time trends
+  - Lap-by-lap time evolution
+* **Race Strategy Engine** – Predictive 1-stop race strategy simulation  
+* **Theme Customization** – Multiple visualization themes for all plots
 * **Error handling** for invalid inputs or missing drivers
 * **Public deployment** with Streamlit Cloud for instant access
-* Extensible with new metrics (cornering, throttle/brake, trajectories)
 
 ---
 
@@ -210,6 +216,9 @@ F1-Driver-Performance-Dashboard/
 ├── README.md                       # This file
 ├── cache/                          # Local FastF1 data cache
 └── src/
+    ├── analysis/
+    │   ├── driver_performance.py   # Driver performance scoring and insights
+    │   └── lap_metrics.py          # Core lap metrics and theoretical best calculations
     ├── data/
     │   ├── driver_data.py         # Driver utilities (lap time formatting, validation)
     │   └── session_data.py        # Session loading and caching
@@ -218,9 +227,9 @@ F1-Driver-Performance-Dashboard/
     │   ├── race_engine.py         # Race simulation engine
     │   └── optimizer.py           # Strategy optimization (1-stop)
     └── visualization/
-        ├── plots.py                # Plotting functions for circuit & speed
-        ├── theme.py                # Theme definitions
-        └── utils.py                # Utility functions (formatting)
+        ├── plots.py               # Plotting functions (speed comparison, position changes, circuit map)
+        ├── theme.py               # Theme definitions and customization
+        └── utils.py               # Utility functions (formatting, helpers)
 ```
 
 ---
